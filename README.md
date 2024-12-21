@@ -27,8 +27,19 @@ pip install boto3 streamlit langchain
 ```
 
 ### AWS Configuration:
-- Set up AWS credentials with access to Bedrock.
-- Use the `ap-south-1` region for compatibility with the pre-configured settings.
+To use AWS Bedrock, configure your AWS credentials:
+
+1. Run the following command to configure AWS CLI:
+   ```bash
+   aws configure
+   ```
+
+2. Provide the required details:
+   - **Access Key ID**: Your AWS Access Key ID
+   - **Secret Access Key**: Your AWS Secret Access Key
+   - **Default region**: `ap-south-1`
+
+Ensure that your AWS credentials have the necessary permissions to access Bedrock services.
 
 ---
 
@@ -76,17 +87,6 @@ Uploaded PDF files are processed by:
 
 ---
 
-## Code Overview
-
-### Key Components:
-- **`data_ingestion`**: Processes uploaded PDF files, extracting and splitting text.
-- **`get_vector_store`**: Creates a FAISS vector store from document embeddings.
-- **`get_llama2_llm`**: Initializes the Llama model from AWS Bedrock.
-- **`get_response_llm`**: Retrieves answers using the vector store and Llama model.
-- **Streamlit UI**: Provides a user-friendly interface for uploading files, updating the vector store, and querying the documents.
-
----
-
 ## Future Enhancements
 
 - Add support for additional file formats.
@@ -106,4 +106,3 @@ This project is licensed under the [MIT License](LICENSE).
 - **Streamlit**: For the interactive web application framework.
 - **AWS Bedrock**: For providing advanced LLM and embedding services.
 - **LangChain**: For the tools to manage embeddings, vector stores, and LLMs.
-
