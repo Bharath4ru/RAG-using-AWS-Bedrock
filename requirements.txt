@@ -1,6 +1,7 @@
+pypdf
 streamlit
 boto3
 langchain-community
 langchain
 faiss-cpu
-PyPDF2
+awscli
