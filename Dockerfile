@@ -1,24 +1,31 @@
-# Use an official Python runtime as a parent image
-FROM python:3.8-slim
+# Base image with Python 3.9
+FROM python:3.9-slim
 
-# Set the working directory in the container
+# Set the working directory
 WORKDIR /app
 
-# Copy the requirements file into the container
-COPY requirements.txt .
+# Copy the Python script and other necessary files to the container
+COPY . /app
 
-# Install the dependencies
-RUN pip install --no-cache-dir -r requirements.txt
+# Install system dependencies
+RUN apt-get update && apt-get install -y \
+    build-essential \
+    libgl1-mesa-glx \
+    libglib2.0-0 \
+    && rm -rf /var/lib/apt/lists/*
 
-# Copy the rest of the application code into the container
-COPY . .
+# Install Python dependencies
+RUN pip install --upgrade pip && pip install --no-cache-dir \
+    boto3 \
+    streamlit \
+    langchain-community \
+    langchain \
+    faiss-cpu \
+    pypdf \
+    awscli
 
 # Expose the Streamlit default port
 EXPOSE 8501
 
-# Set the environment variable to run Streamlit
-ENV STREAMLIT_SERVER_PORT=8501
-ENV STREAMLIT_SERVER_HEADLESS=true
-
-# Command to run the Streamlit application
-CMD ["streamlit", "run", "app.py"]
+# Set the entrypoint with explicit server settings
+ENTRYPOINT ["streamlit", "run", "app.py", "--server.port=8501", "--server.address=0.0.0.0"]
