@@ -3,8 +3,25 @@ import os
 import tempfile
 import boto3
 import streamlit as st
+from dotenv import load_dotenv  # To load .env variables
 
-# We will be using Titan Embeddings Model to generate Embeddings
+# Load environment variables from .env file
+load_dotenv()
+
+# Fetch AWS credentials and settings from environment variables
+AWS_ACCESS_KEY = os.getenv("AWS_ACCESS_KEY_ID")
+AWS_SECRET_KEY = os.getenv("AWS_SECRET_ACCESS_KEY")
+AWS_REGION = os.getenv("DEFAULT_REGION_NAME", "us-east-1")  # Default region fallback
+
+# Initialize AWS Bedrock client
+bedrock = boto3.client(
+    service_name="bedrock-runtime",
+    region_name=AWS_REGION,
+    aws_access_key_id=AWS_ACCESS_KEY,
+    aws_secret_access_key=AWS_SECRET_KEY
+)
+
+# Import Titan Embeddings Model to generate Embeddings
 from langchain_community.embeddings import BedrockEmbeddings
 from langchain.llms.bedrock import Bedrock
 
@@ -15,16 +32,16 @@ from langchain_community.document_loaders import PyPDFLoader
 # Vector Embedding and Vector Store
 from langchain.vectorstores import FAISS
 
-# LLm Models
+# LLM Models
 from langchain.prompts import PromptTemplate
 from langchain.chains import RetrievalQA
 
-# Bedrock Clients
-bedrock = boto3.client(service_name="bedrock-runtime", region_name="ap-south-1")
-bedrock_embeddings = BedrockEmbeddings(model_id="amazon.titan-embed-text-v2:0", client=bedrock)
+bedrock_embeddings = BedrockEmbeddings(
+    model_id="amazon.titan-embed-text-v2:0", client=bedrock
+)
 
+# Functions for data ingestion, vector store creation, and LLM response
 def data_ingestion(uploaded_file):
-    # Save the uploaded file to a temporary file
     with tempfile.NamedTemporaryFile(delete=False, suffix=".pdf") as temp_file:
         temp_file.write(uploaded_file.read())
         temp_file_path = temp_file.name
@@ -32,27 +49,23 @@ def data_ingestion(uploaded_file):
     try:
         loader = PyPDFLoader(temp_file_path)
         documents = loader.load()
-
-        # - in our testing, Character split works better with this PDF dataset
         text_splitter = RecursiveCharacterTextSplitter(chunk_size=10000, chunk_overlap=1000)
         docs = text_splitter.split_documents(documents)
     finally:
-        # Clean up the temporary file
         os.remove(temp_file_path)
 
     return docs
 
 def get_vector_store(docs):
-    vectorstore_faiss = FAISS.from_documents(
-        docs,
-        bedrock_embeddings
-    )
+    vectorstore_faiss = FAISS.from_documents(docs, bedrock_embeddings)
     vectorstore_faiss.save_local("faiss_index")
 
 def get_llama2_llm():
-    # Create the Meta Llama Model
-    llm = Bedrock(model_id="meta.llama3-70b-instruct-v1:0", client=bedrock,
-                  model_kwargs={'max_gen_len': 512})
+    llm = Bedrock(
+        model_id="meta.llama3-70b-instruct-v1:0", 
+        client=bedrock, 
+        model_kwargs={'max_gen_len': 512}
+    )
     return llm
 
 prompt_template = """
@@ -68,9 +81,7 @@ Question: {question}
 
 Assistant:"""
 
-PROMPT = PromptTemplate(
-    template=prompt_template, input_variables=["context", "question"]
-)
+PROMPT = PromptTemplate(template=prompt_template, input_variables=["context", "question"])
 
 def get_response_llm(llm, vectorstore_faiss, query):
     qa = RetrievalQA.from_chain_type(
@@ -111,7 +122,6 @@ def main():
 
     if st.button("Llama3 Output"):
         with st.spinner("Processing..."):
-            # Load the FAISS index with dangerous deserialization enabled
             faiss_index = FAISS.load_local("faiss_index", bedrock_embeddings, allow_dangerous_deserialization=True)
             llm = get_llama2_llm()
 
